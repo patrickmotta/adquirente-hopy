@@ -11,7 +11,7 @@ export class WebhookController {
 		private readonly webhookHopyTransactionService: WebhookHopyTransactionService,
 	) {}
 
-	// @UseGuards(HostGuard)
+	@UseGuards(HostGuard)
 	@Post('/hopy/transation')
 	async transaction(@Body() body: ITransaction): Promise<object> {
 		return this.webhookHopyTransactionService.execute(body)
