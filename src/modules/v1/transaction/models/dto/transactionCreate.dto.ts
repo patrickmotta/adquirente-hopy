@@ -4,11 +4,13 @@ import {
 	IsNumber,
 	IsPositive,
 	IsString,
+	ValidateIf,
 	ValidateNested,
 } from 'class-validator'
 import { PaymentsMethodsEnum } from '../../resources/enum/paymentsMethods.enum'
-import { Transform, Type } from 'class-transformer'
+import { Type } from 'class-transformer'
 import { CustomerDto } from './customer.dto'
+import { CardDto } from './card.dto'
 
 export class TransactionCreateDto {
 	id!: number
@@ -33,4 +35,13 @@ export class TransactionCreateDto {
 	@ValidateNested()
 	@Type(() => CustomerDto)
 	customer!: CustomerDto
+
+	@ValidateIf((o) => o.paymentMethod === PaymentsMethodsEnum.creditCard)
+	@IsNotEmpty({
+		message:
+			'Os dados do cartão são obrigatórios para pagamentos com cartão de crédito',
+	})
+	@ValidateNested()
+	@Type(() => CardDto)
+	card!: CardDto
 }

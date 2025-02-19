@@ -5,9 +5,15 @@ import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common'
 import { useContainer } from 'class-validator'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { projectName } from '@common/utils/projectName'
+import * as fs from 'fs'
+import * as path from 'path'
 
 async function bootstrap(): Promise<void> {
-	const app = await NestFactory.create(AppModule)
+	const httpsOptions = {
+		key: fs.readFileSync(path.join(__dirname, '../certs/private.key')),
+		cert: fs.readFileSync(path.join(__dirname, '../certs/certificate.crt')),
+	}
+	const app = await NestFactory.create(AppModule, { httpsOptions })
 
 	app.useGlobalPipes(
 		new ValidationPipe({
