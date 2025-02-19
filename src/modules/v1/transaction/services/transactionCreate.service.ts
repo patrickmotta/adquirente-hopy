@@ -2,20 +2,34 @@ import { Injectable } from '@nestjs/common'
 import { TransactionCreateDto } from '../models/dto/transactionCreate.dto'
 import { TransactionRepository } from '../repositories/transaction.repository'
 import { TransactionStatusEnum } from '../resources/enum/transactionStatus.enum'
-import { plainToClass } from 'class-transformer'
-import { CustomerDto } from '../models/dto/customer.dto'
+import { HopyCreateTransactionService } from '@modules/v1/hopy/services/hopyCreateTransaction.service'
 
 @Injectable()
 export class TransactionCreateService {
-	constructor(private readonly transactionRepostory: TransactionRepository) {}
+	constructor(
+		private readonly transactionRepostory: TransactionRepository,
+		private readonly hopyCreateTransactionService: HopyCreateTransactionService,
+	) {}
 	async execute(transactionDto: TransactionCreateDto): Promise<object> {
-		console.log('a', plainToClass(TransactionCreateDto, transactionDto))
+		const items = [
+			{
+				title: transactionDto.description,
+				unitPrice: transactionDto.amount,
+				quantity: 1,
+				tangible: false,
+			},
+		]
+		const hopyTransaction = await this.hopyCreateTransactionService.execute({
+			...transactionDto,
+			items,
+		})
+
 		await this.transactionRepostory.store({
 			...transactionDto,
 			customerEmail: transactionDto.customer.email,
 			customerName: transactionDto.customer.name,
 			status: TransactionStatusEnum.PENDING,
-			transactionId: '12385',
+			transactionId: hopyTransaction.id,
 		})
 
 		return {
