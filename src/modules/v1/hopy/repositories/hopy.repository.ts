@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios'
 import { Injectable } from '@nestjs/common'
 import { firstValueFrom } from 'rxjs'
 import { ITransaction } from '../resources/interfaces/transaction.interface'
-import { isAxiosError } from 'axios'
+import { SendLogService } from '@modules/v1/log/services/sendLog.service'
 
 interface ICreateTransactionInput {
 	amount: number
@@ -29,12 +29,15 @@ type IRefundOutput = ITransaction
 
 @Injectable()
 export class HopyRepository {
-	constructor(private readonly httpService: HttpService) {}
+	constructor(
+		private readonly httpService: HttpService,
+		private readonly sendLogStoreService: SendLogService,
+	) {}
 
 	async getAllTransactions(): Promise<ITransaction[]> {
 		try {
 			const response = await firstValueFrom(
-				this.httpService.get('/transactions'),
+				this.httpService.get('v1/transactions'),
 			)
 
 			return response.data
@@ -51,20 +54,20 @@ export class HopyRepository {
 	async createTransaction(
 		transaction: ICreateTransactionInput,
 	): Promise<ITransaction> {
+		const timeExecute = Date.now()
 		try {
-			const data = {
-				...transaction,
-				card: {
-					number: 20231252321478986,
-					holderName: 'teste',
-					expirationMonth: 12,
-					expirationYear: 2026,
-					cvv: '123',
-				},
-			}
 			const response = await firstValueFrom(
-				this.httpService.post('/transactions', data),
+				this.httpService.post('v1/transactions', transaction),
 			)
+
+			await this.sendLogStoreService.store({
+				method: 'POST',
+				path: 'v1/transactions',
+				request: transaction,
+				response: response.data,
+				status: response.status,
+				time: String(Date.now() - timeExecute),
+			})
 
 			return response.data
 		} catch (err) {
@@ -78,14 +81,23 @@ export class HopyRepository {
 	}
 
 	async refund({ id }: IRefundInput): Promise<IRefundOutput> {
+		const timeExecute = Date.now()
 		try {
 			const response = await firstValueFrom(
-				this.httpService.post(`transactions/${id}/refund`),
+				this.httpService.post(`v1/transactions/${id}/refund`),
 			)
+
+			await this.sendLogStoreService.store({
+				method: 'POST',
+				path: `v1/transactions/${id}/refund`,
+				request: {},
+				response: response.data,
+				status: response.status,
+				time: String(Date.now() - timeExecute),
+			})
 
 			return response.data
 		} catch (err) {
-			if (isAxiosError(err)) console.log(err.response?.data)
 			const error = err as { message: string }
 			throw new AppErrorException({
 				message: 'Erro ao realizar o reembolso da transação',
